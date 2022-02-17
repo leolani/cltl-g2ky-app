@@ -7,12 +7,12 @@ with open("VERSION", "r") as fh:
     version = fh.read().strip()
 
 setup(
-    name='cltl.eliza-app',
+    name='cltl.g2ky-app',
     version=version,
     package_dir={'': 'py-app'},
     packages=find_namespace_packages(include=['*'], where='py-app'),
     data_files=[('VERSION', ['VERSION'])],
-    url="https://github.com/leolani/cltl-eliza-app",
+    url="https://github.com/leolani/cltl-g2ky-app",
     license='MIT License',
     author='CLTL',
     author_email='t.baier@vu.nl',
@@ -25,11 +25,10 @@ setup(
         "cltl.asr[impl,service]",
         "cltl.vad[impl,service]",
         "cltl.chat-ui",
-        "cltl.eliza",
         "flask",
         "werkzeug"
     ],
     entry_points={
-        'eliza': [ 'app:main']
+        'g2ky': [ 'app:main']
     }
 )

@@ -2,7 +2,6 @@ cltl.backend[impl,host,service]
 cltl.asr[impl,service]
 cltl.vad[impl,service]
 cltl.chat-ui
-cltl.eliza
 
 flask
 werkzeug

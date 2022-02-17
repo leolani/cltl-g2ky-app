@@ -7,7 +7,8 @@ project_dependencies ?= $(addprefix $(project_root)/, \
 		cltl-backend \
 		cltl-vad \
 		cltl-asr \
-		cltl-eliza \
+		cltl-face-recognition \
+		cltl-g2ky \
 		cltl-chat-ui)
 
 git_remote ?= https://github.com/leolani
