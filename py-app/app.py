@@ -1,3 +1,5 @@
+import dataclasses
+import json
 import logging.config
 
 from cltl.asr.speechbrain_asr import SpeechbrainASR
@@ -23,16 +25,19 @@ from cltl.combot.infra.di_container import singleton
 from cltl.combot.infra.event import Event
 from cltl.combot.infra.event.memory import SynchronousEventBusContainer
 from cltl.combot.infra.resource.threaded import ThreadedResourceContainer
-from cltl.eliza.api import Eliza
-from cltl.eliza.eliza import ElizaImpl
+from cltl.face_recognition.api import FaceDetector
+from cltl.face_recognition.proxy import FaceDetectorProxy
 from cltl.vad.webrtc_vad import WebRtcVAD
+from cltl.vector_id.api import VectorIdentity
+from cltl.vector_id.clusterid import ClusterIdentity
 from cltl_service.asr.service import AsrService
 from cltl_service.backend.backend import BackendService
 from cltl_service.backend.schema import TextSignalEvent
 from cltl_service.backend.storage import StorageService
 from cltl_service.chatui.service import ChatUiService
-from cltl_service.eliza.service import ElizaService
+from cltl_service.face_recognition.service import FaceRecognitionService
 from cltl_service.vad.service import VadService
+from cltl_service.vector_id.service import VectorIdService
 from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from werkzeug.serving import run_simple
@@ -201,30 +206,88 @@ class ChatUIContainer(InfraContainer):
         super().stop()
 
 
-class ElizaContainer(InfraContainer):
+class FaceRecognitionContainer(InfraContainer):
     @property
     @singleton
-    def eliza(self) -> Eliza:
-        return ElizaImpl()
+    def face_detector(self) -> FaceDetector:
+        # return FaceDetectorProxy(8000, 0)
+        return None
 
     @property
     @singleton
-    def eliza_service(self) -> ElizaService:
-        return ElizaService.from_config(self.eliza, self.event_bus, self.resource_manager, self.config_manager)
+    def face_recognition_service(self) -> FaceRecognitionService:
+        return FaceRecognitionService.from_config(self.face_detector, self.event_bus,
+                                                  self.resource_manager, self.config_manager)
 
     def start(self):
-        logger.info("Start Eliza")
+        logger.info("Start face recognition")
         super().start()
-        self.eliza_service.start()
+        self.face_recognition_service.start()
 
     def stop(self):
-        logger.info("Stop Eliza")
-        self.eliza_service.stop()
+        logger.info("Stop face recognition")
+        self.face_recognition_service.stop()
         super().stop()
 
 
-class ApplicationContainer(ElizaContainer, ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
+class VectorIdContainer(InfraContainer):
+    @property
+    @singleton
+    def vector_id(self) -> VectorIdentity:
+        config = self.config_manager.get_config("cltl.vector-id.agg")
+
+        return ClusterIdentity.agglomerative(0, config.get("distance_threshold"))
+
+    @property
+    @singleton
+    def vector_id_service(self) -> FaceRecognitionService:
+        return VectorIdService.from_config(self.vector_id, self.event_bus,
+                                           self.resource_manager, self.config_manager)
+
+    def start(self):
+        logger.info("Start vector id service")
+        super().start()
+        self.vector_id_service.start()
+
+    def stop(self):
+        logger.info("Stop vector id service")
+        self.vector_id_service.stop()
+        super().stop()
+
+
+# class ElizaContainer(InfraContainer):
+#     @property
+#     @singleton
+#     def eliza(self) -> Eliza:
+#         return ElizaImpl()
+#
+#     @property
+#     @singleton
+#     def eliza_service(self) -> ElizaService:
+#         return ElizaService.from_config(self.eliza, self.event_bus, self.resource_manager, self.config_manager)
+#
+#     def start(self):
+#         logger.info("Start Eliza")
+#         super().start()
+#         self.eliza_service.start()
+#
+#     def stop(self):
+#         logger.info("Stop Eliza")
+#         self.eliza_service.stop()
+#         super().stop()
+
+# class ApplicationContainer(ElizaContainer, ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
+#     pass
+class ApplicationContainer(ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
     pass
+
+
+def ser(obj):
+    try:
+        return vars(obj)
+    except:
+        print("XXXX", obj)
+        return ""
 
 
 def main():
@@ -235,13 +298,17 @@ def main():
     application = ApplicationContainer()
     application.start()
 
-
     def print_event(event: Event):
         logger.info("APP event (%s): (%s)", event.metadata.topic, event.payload)
+        try:
+            print(json.dumps(event.payload, indent=2, default=ser))
+        except:
+            logger.exception("XXXXX FAILED")
     def print_text_event(event: Event[TextSignalEvent]):
         logger.info("UTTERANCE event (%s): (%s)", event.metadata.topic, event.payload.signal.text)
 
     application.event_bus.subscribe("cltl.topic.microphone", print_event)
+    application.event_bus.subscribe("cltl.topic.image", print_event)
     application.event_bus.subscribe("cltl.topic.vad", print_event)
     application.event_bus.subscribe("cltl.topic.text_in", print_text_event)
     application.event_bus.subscribe("cltl.topic.text_out", print_text_event)

@@ -1,7 +1,9 @@
 cltl.backend[impl,host,service]
 cltl.asr[impl,service]
 cltl.vad[impl,service]
-cltl.chat-ui
+cltl.g2ky[impl,service]
+cltl.chat-ui[impl,service]
+cltl.face-recognition[impl,service]
 
 flask
 werkzeug
