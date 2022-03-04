@@ -1,5 +1,3 @@
-import dataclasses
-import json
 import logging.config
 
 from cltl.asr.speechbrain_asr import SpeechbrainASR
@@ -210,8 +208,7 @@ class FaceRecognitionContainer(InfraContainer):
     @property
     @singleton
     def face_detector(self) -> FaceDetector:
-        # return FaceDetectorProxy(8000, 0)
-        return None
+        return FaceDetectorProxy()
 
     @property
     @singleton
@@ -220,12 +217,12 @@ class FaceRecognitionContainer(InfraContainer):
                                                   self.resource_manager, self.config_manager)
 
     def start(self):
-        logger.info("Start face recognition")
+        logger.info("Start Face Recognition")
         super().start()
         self.face_recognition_service.start()
 
     def stop(self):
-        logger.info("Stop face recognition")
+        logger.info("Stop Face Recognition")
         self.face_recognition_service.stop()
         super().stop()
 
@@ -234,9 +231,9 @@ class VectorIdContainer(InfraContainer):
     @property
     @singleton
     def vector_id(self) -> VectorIdentity:
-        config = self.config_manager.get_config("cltl.vector-id.agg")
+        config = self.config_manager.get_config("cltl.vector_id.agg")
 
-        return ClusterIdentity.agglomerative(0, config.get("distance_threshold"))
+        return ClusterIdentity.agglomerative(0, config.get_float("distance_threshold"))
 
     @property
     @singleton
@@ -245,12 +242,12 @@ class VectorIdContainer(InfraContainer):
                                            self.resource_manager, self.config_manager)
 
     def start(self):
-        logger.info("Start vector id service")
+        logger.info("Start Vector ID")
         super().start()
         self.vector_id_service.start()
 
     def stop(self):
-        logger.info("Stop vector id service")
+        logger.info("Stop Vector ID")
         self.vector_id_service.stop()
         super().stop()
 
@@ -276,9 +273,7 @@ class VectorIdContainer(InfraContainer):
 #         self.eliza_service.stop()
 #         super().stop()
 
-# class ApplicationContainer(ElizaContainer, ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
-#     pass
-class ApplicationContainer(ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
+class ApplicationContainer(FaceRecognitionContainer, VectorIdContainer, ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
     pass
 
 
@@ -300,16 +295,15 @@ def main():
 
     def print_event(event: Event):
         logger.info("APP event (%s): (%s)", event.metadata.topic, event.payload)
-        try:
-            print(json.dumps(event.payload, indent=2, default=ser))
-        except:
-            logger.exception("XXXXX FAILED")
     def print_text_event(event: Event[TextSignalEvent]):
         logger.info("UTTERANCE event (%s): (%s)", event.metadata.topic, event.payload.signal.text)
 
     application.event_bus.subscribe("cltl.topic.microphone", print_event)
     application.event_bus.subscribe("cltl.topic.image", print_event)
     application.event_bus.subscribe("cltl.topic.vad", print_event)
+    application.event_bus.subscribe("cltl.topic.face", print_event)
+    application.event_bus.subscribe("cltl.topic.face_recognition", print_event)
+    application.event_bus.subscribe("cltl.topic.face_id", print_event)
     application.event_bus.subscribe("cltl.topic.text_in", print_text_event)
     application.event_bus.subscribe("cltl.topic.text_out", print_text_event)
 
