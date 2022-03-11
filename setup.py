@@ -24,7 +24,9 @@ setup(
         "cltl.backend[impl,host,service]",
         "cltl.asr[impl,service]",
         "cltl.vad[impl,service]",
-        "cltl.chat-ui",
+        "cltl.cltl.face-recognition[impl,service]",
+        "cltl.cltl.g2ky[impl,service]",
+        "cltl.chat-ui[impl, service]",
         "flask",
         "werkzeug"
     ],

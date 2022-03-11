@@ -1,5 +1,4 @@
 import logging.config
-
 from cltl.asr.speechbrain_asr import SpeechbrainASR
 from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import CameraResolution, Camera
@@ -25,6 +24,8 @@ from cltl.combot.infra.event.memory import SynchronousEventBusContainer
 from cltl.combot.infra.resource.threaded import ThreadedResourceContainer
 from cltl.face_recognition.api import FaceDetector
 from cltl.face_recognition.proxy import FaceDetectorProxy
+from cltl.g2ky.api import GetToKnowYou
+from cltl.g2ky.memory import MemoryGetToKnowYou
 from cltl.vad.webrtc_vad import WebRtcVAD
 from cltl.vector_id.api import VectorIdentity
 from cltl.vector_id.clusterid import ClusterIdentity
@@ -34,6 +35,7 @@ from cltl_service.backend.schema import TextSignalEvent
 from cltl_service.backend.storage import StorageService
 from cltl_service.chatui.service import ChatUiService
 from cltl_service.face_recognition.service import FaceRecognitionService
+from cltl_service.g2ky.service import GetToKnowYouService
 from cltl_service.vad.service import VadService
 from cltl_service.vector_id.service import VectorIdService
 from flask import Flask
@@ -252,6 +254,28 @@ class VectorIdContainer(InfraContainer):
         super().stop()
 
 
+class G2KYContainer(InfraContainer):
+    @property
+    @singleton
+    def g2ky(self) -> GetToKnowYou:
+        return MemoryGetToKnowYou()
+
+    @property
+    @singleton
+    def g2ky_service(self) -> GetToKnowYouService:
+        return GetToKnowYouService.from_config(self.g2ky, self.event_bus, self.resource_manager, self.config_manager)
+
+    def start(self):
+        logger.info("Start G2KY")
+        super().start()
+        self.g2ky_service.start()
+
+    def stop(self):
+        logger.info("Stop G2KY")
+        self.g2ky_service.stop()
+        super().stop()
+
+
 # class ElizaContainer(InfraContainer):
 #     @property
 #     @singleton
@@ -273,16 +297,10 @@ class VectorIdContainer(InfraContainer):
 #         self.eliza_service.stop()
 #         super().stop()
 
-class ApplicationContainer(FaceRecognitionContainer, VectorIdContainer, ChatUIContainer, ASRContainer, VADContainer, BackendContainer):
+class ApplicationContainer(G2KYContainer,
+                           FaceRecognitionContainer, VectorIdContainer, ASRContainer, VADContainer,
+                           ChatUIContainer, BackendContainer):
     pass
-
-
-def ser(obj):
-    try:
-        return vars(obj)
-    except:
-        print("XXXX", obj)
-        return ""
 
 
 def main():
