@@ -1,5 +1,5 @@
 import logging.config
-from cltl.asr.speechbrain_asr import SpeechbrainASR
+
 from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import CameraResolution, Camera
 from cltl.backend.api.microphone import Microphone
@@ -142,11 +142,18 @@ class VADContainer(InfraContainer):
     @property
     @singleton
     def vad_service(self) -> VadService:
+        config = self.config_manager.get_config("cltl.vad.webrtc")
+        activity_window = config.get_int("activity_window")
+        activity_threshold = config.get_float("activity_threshold")
+        allow_gap = config.get_int("allow_gap")
+        padding = config.get_int("padding")
         storage = None
         # DEBUG
-        # storage = "/Users/tkb/automatic/workspaces/robo/eliza-parent/cltl-eliza-app/py-app/storage/audio/debug/vad"
+        # storage = "/Users/tkb/automatic/workspaces/robo/g2ky-parent/cltl-g2ky-app/py-app/storage/audio/debug/vad"
 
-        return VadService.from_config(WebRtcVAD(storage=storage), self.event_bus, self.resource_manager, self.config_manager)
+        vad = WebRtcVAD(activity_window, activity_threshold, allow_gap, padding, storage=storage)
+
+        return VadService.from_config(vad, self.event_bus, self.resource_manager, self.config_manager)
 
     def start(self):
         logger.info("Start VAD")
@@ -164,14 +171,25 @@ class ASRContainer(InfraContainer):
     @singleton
     def asr_service(self) -> AsrService:
         config = self.config_manager.get_config("cltl.asr")
-        model = config.get("model")
         sampling_rate = config.get_int("sampling_rate")
+        implementation = config.get("implementation")
 
         storage = None
         # DEBUG
-        # storage = "/Users/tkb/automatic/workspaces/robo/eliza-parent/cltl-eliza-app/py-app/storage/audio/debug/asr"
+        # storage = "/Users/tkb/automatic/workspaces/robo/g2ky-parent/cltl-g2ky-app/py-app/storage/audio/debug/asr"
 
-        return AsrService.from_config(SpeechbrainASR(model, storage=storage), self.event_bus, self.resource_manager, self.config_manager)
+        if implementation == "speechbrain":
+            from cltl.asr.speechbrain_asr import SpeechbrainASR
+            impl_config = self.config_manager.get_config("cltl.asr.speechbrain")
+            model = impl_config.get("model")
+            asr = SpeechbrainASR(model, storage=storage)
+        elif implementation == "wav2vec":
+            from cltl.asr.wav2vec_asr import Wav2Vec2ASR
+            impl_config = self.config_manager.get_config("cltl.asr.wav2vec")
+            model = impl_config.get("model")
+            asr = Wav2Vec2ASR(model, sampling_rate=sampling_rate, storage=storage)
+
+        return AsrService.from_config(asr, self.event_bus, self.resource_manager, self.config_manager)
 
     def start(self):
         logger.info("Start ASR")
