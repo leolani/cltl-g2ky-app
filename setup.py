@@ -1,4 +1,4 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -10,7 +10,7 @@ setup(
     name='cltl.g2ky-app',
     version=version,
     package_dir={'': 'py-app'},
-    packages=find_namespace_packages(include=['*'], where='py-app'),
+    packages=find_packages(include=['*'], where='py-app'),
     data_files=[('VERSION', ['VERSION'])],
     url="https://github.com/leolani/cltl-g2ky-app",
     license='MIT License',
@@ -31,6 +31,6 @@ setup(
         "werkzeug"
     ],
     entry_points={
-        'g2ky': [ 'app:main']
+        'g2ky': [ 'g2ky = app:main']
     }
 )
